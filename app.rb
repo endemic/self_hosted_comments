@@ -50,7 +50,7 @@ post "/comments" do
 
   values = [
     params["slug"],   # slug
-    params["name"],   # name
+    params["author"], # author
     params["url"],    # url
     params["body"],   # body
     Time.now.to_i     # timestamp
