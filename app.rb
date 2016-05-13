@@ -3,18 +3,48 @@
 require "sqlite3"
 require "sinatra"
 require "faraday"
+require "json"
 
-db = SQLite3::Database.new "comments.sqlite"
+DATABASE = if ENV["RACK_ENV"] == "test"
+             "test.sqlite"
+           else
+             "comments.sqlite"
+           end
+
+db = SQLite3::Database.new(DATABASE)
 db.results_as_hash = true
+
+# Initialize schema if necessary
+schema_init_query = <<-SQL
+-- ----------------------------
+--  Table structure for comments
+-- ----------------------------
+CREATE TABLE IF NOT EXISTS "comments" (
+   "slug" text NOT NULL,
+   "author" text NOT NULL,
+   "url" text,
+   "body" text NOT NULL,
+   "timestamp" integer NOT NULL
+);
+
+-- ----------------------------
+--  Indexes structure for table comments
+-- ----------------------------
+CREATE INDEX IF NOT EXISTS "slug_idx" ON comments ("slug");
+SQL
+
+db.execute(schema_init_query)
+
+# -- Routes --
 
 post "/comments" do
   captcha_results = if ENV["RACK_ENV"] == "production"
-    verify_captcha(secret: ENV["recaptcha_secret"],
-                   response: params["g-recaptcha-response"],
-                   remoteip: request.ip)
-  else
-    { "success" => true }
-  end
+                      verify_captcha(secret: ENV["recaptcha_secret"],
+                                     response: params["g-recaptcha-response"],
+                                     remoteip: request.ip)
+                    else
+                      { "success" => true }
+                    end
 
   halt 403 unless captcha_results["success"]
 
@@ -35,9 +65,10 @@ post "/comments" do
 end
 
 get "/comments/:slug" do
-  rows = db.execute2("SELECT * FROM comments WHERE slug = '?'", [params["slug"]])
-  halt 404 unless rows.any?
-  return rows[1..-1].to_json
+  rows = db.execute2("SELECT * FROM comments WHERE slug = ?", params["slug"])
+  return status 404  unless rows.count > 1 # execute2 returns first result as column names
+
+  rows[1..-1].to_json
 end
 
 def verify_captcha(params)
