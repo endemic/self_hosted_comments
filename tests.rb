@@ -14,7 +14,7 @@ class AppTest < Minitest::Test
   def test_post_and_get
     slug = SecureRandom.hex
 
-    post "/comments", { slug: slug, name: "nathan", body: "this is a comment" }
+    post "/comments", { slug: slug, author: "nathan", body: "this is a comment" }
     assert_equal 201, last_response.status
 
     get "/comments/#{slug}"
@@ -25,9 +25,9 @@ class AppTest < Minitest::Test
   def test_get_multiple_results
     slug = SecureRandom.hex
 
-    post "/comments", { slug: slug, name: "nathan", body: "this is a comment" }
-    post "/comments", { slug: slug, name: "nathan", body: "this is a comment" }
-    post "/comments", { slug: slug, name: "nathan", body: "this is a comment" }
+    post "/comments", { slug: slug, author: "nathan", body: "this is a comment" }
+    post "/comments", { slug: slug, author: "nathan", body: "this is a comment" }
+    post "/comments", { slug: slug, author: "nathan", body: "this is a comment" }
 
     get "/comments/#{slug}"
     json_response = JSON.parse(last_response.body)
@@ -36,6 +36,7 @@ class AppTest < Minitest::Test
 
   def test_get_not_found
     get "/comments/garbage"
-    assert_equal 404, last_response.status
+    assert_equal 200, last_response.status
+    assert_equal last_response.body, ""
   end
 end
