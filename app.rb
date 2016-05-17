@@ -75,6 +75,10 @@ get "/comments/:slug" do
   rows[1..-1].to_json
 end
 
+not_found do
+  { status: 404, message: "Content not found" }.to_json
+end
+
 def verify_captcha(params)
   # Check validity of CAPTCHA
   conn = Faraday.new(url: "https://www.google.com") do |faraday|
