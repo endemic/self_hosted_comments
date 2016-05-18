@@ -19,7 +19,7 @@ class AppTest < Minitest::Test
 
     get "/comments/#{slug}"
     json_response = JSON.parse(last_response.body)
-    assert_equal json_response.first["slug"], slug
+    assert_equal json_response["comments"].first["slug"], slug
   end
 
   def test_get_multiple_results
@@ -31,12 +31,13 @@ class AppTest < Minitest::Test
 
     get "/comments/#{slug}"
     json_response = JSON.parse(last_response.body)
-    assert_equal json_response.count, 3
+    assert_equal json_response["comments"].count, 3
   end
 
   def test_get_not_found
     get "/comments/garbage"
     assert_equal 200, last_response.status
-    assert_equal last_response.body, ""
+    json_response = JSON.parse(last_response.body)
+    assert_equal json_response["comments"], []
   end
 end

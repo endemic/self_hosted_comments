@@ -41,7 +41,7 @@ post "/comments" do
   response['Access-Control-Allow-Origin'] = '*'
 
   captcha_results = if ENV["RACK_ENV"] == "production"
-                      verify_captcha(secret: ENV["recaptcha_secret"],
+                      verify_captcha(secret: ENV["RECAPTCHA_SECRET"],
                                      response: params["g-recaptcha-response"],
                                      remoteip: request.ip)
                     else
@@ -70,9 +70,9 @@ get "/comments/:slug" do
   response['Access-Control-Allow-Origin'] = '*'
 
   rows = db.execute2("SELECT * FROM comments WHERE slug = ?", params["slug"])
-  return [] unless rows.count > 1 # execute2 returns first result as column names
+  return { comments: [] }.to_json unless rows.count > 1 # execute2 returns first result as column names
 
-  rows[1..-1].to_json
+  { comments: rows[1..-1] }.to_json
 end
 
 not_found do
