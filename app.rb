@@ -48,7 +48,10 @@ post "/comments" do
                       { "success" => true }
                     end
 
-  halt 403 unless captcha_results["success"]
+  unless captcha_results["success"]
+    status 403
+    return captcha_results.as_json
+  end
 
   values = [
     params["slug"],   # slug
