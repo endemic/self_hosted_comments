@@ -15,7 +15,7 @@ class AppTest < Minitest::Test
     slug = SecureRandom.hex
 
     post "/comments", { slug: slug, author: "nathan", body: "this is a comment" }
-    assert_equal 201, last_response.status
+    assert_equal 200, last_response.status
 
     get "/comments/#{slug}"
     json_response = JSON.parse(last_response.body)

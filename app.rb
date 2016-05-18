@@ -50,7 +50,7 @@ post "/comments" do
 
   unless captcha_results["success"]
     status 403
-    return captcha_results.as_json
+    return captcha_results.to_json
   end
 
   values = [
@@ -63,9 +63,10 @@ post "/comments" do
 
   begin
     db.execute("INSERT INTO comments VALUES (?, ?, ?, ?, ?)", values)
-    status 201
+    return { success: true }.to_json
   rescue SQLite3::SQLException
     status 500
+    return { success: false, message: 'Malformed parameters' }.to_json
   end
 end
 
