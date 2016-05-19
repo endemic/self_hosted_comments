@@ -3,7 +3,7 @@
      * @constructor
      */
     var CommentHelper = function () {
-        this.slug = window.location.href.split('/').pop();
+        this.slug = window.location.pathname.split('/').pop();
         this.url = 'https://nathandemick.com/api'; // Replace this w/ ur server
 
         this.writeForm();
