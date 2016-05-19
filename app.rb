@@ -38,7 +38,7 @@ db.execute(schema_init_query)
 # -- Routes --
 
 post "/comments" do
-  response['Access-Control-Allow-Origin'] = '*'
+  response["Access-Control-Allow-Origin"] = "https://nathandemick.com"
 
   captcha_results = if ENV["RACK_ENV"] == "production"
                       verify_captcha(secret: ENV["RECAPTCHA_SECRET"],
@@ -71,7 +71,7 @@ post "/comments" do
 end
 
 get "/comments/:slug" do
-  response['Access-Control-Allow-Origin'] = '*'
+  response["Access-Control-Allow-Origin"] = "https://nathandemick.com"
 
   rows = db.execute2("SELECT * FROM comments WHERE slug = ?", params["slug"])
   return { comments: [] }.to_json unless rows.count > 1 # execute2 returns first result as column names
