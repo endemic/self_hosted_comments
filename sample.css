@@ -4,4 +4,4 @@
 #comment_form button { margin: 10px 0 0 65px; border: 2px solid black; padding: 5px 10px; font-size: 16px; cursor: pointer; }
 #comment_form input,
 #comment_form textarea { width: 625px; border: 1px solid #ccc; padding: 4px; }
-#comment_form #comment_error { border: 2px solid crimson; background: lightpink; font-weight: bold; padding: 5px 10px; margin: 10px 10px 10px auto; }
+#comment_form #comment_error_msg { border: 2px solid crimson; background: lightpink; font-weight: bold; padding: 5px 10px; margin: 10px 10px 10px auto; }
