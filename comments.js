@@ -1,9 +1,20 @@
 (function () {
+    // polyfill, because I'm lazy
+    Array.prototype.compact = function () {
+        var emptyValues = [null, undefined, ''];
+        for (var i = 0; i < this.length; i += 1) {
+            if (emptyValues.indexOf(this[i]) > -1) {
+                this.splice(i, 1);
+            }
+        }
+        return this;
+    };
+
     /**
      * @constructor
      */
     var CommentHelper = function () {
-        this.slug = window.location.pathname.split('/').pop();
+        this.slug = window.location.pathname.split('/').compact().pop();
         this.url = 'https://nathandemick.com/api'; // Replace this w/ ur server
 
         this.writeForm();
