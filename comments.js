@@ -1,4 +1,4 @@
-(function () {
+(function (root) {
     // polyfill, because I'm lazy
     if (!Array.prototype.compact) {
         Array.prototype.compact = function () {
@@ -19,7 +19,12 @@
         this.slug = window.location.pathname.split('/').compact().pop();
         this.url = 'https://nathandemick.com/api'; // Replace this w/ ur server
         this.captchaSiteKey = '6LeqwR8TAAAAAKl3dbC6494ll8Eki6ss5zBgWxxw'; // Replace this w/ ur key
+    };
 
+    /**
+     * @description Load comments on a post detail page
+     */
+    CommentHelper.prototype.getComments = function () {
         this.writeForm();
 
         // Load reCAPTCHA
@@ -27,7 +32,24 @@
         script.src = 'https://www.google.com/recaptcha/api.js';
         document.head.appendChild(script);
 
-        this.getComments();
+        this.httpRequest({
+            url: this.url + '/comments/' + this.slug,
+            callback: function (errorText, responseText) {
+                if (errorText) {
+                    return this.showError();
+                }
+
+                try {
+                    var response = JSON.parse(responseText);
+
+                    response.comments.forEach(function (params) {
+                        this.commentList.appendChild(this.commentTemplate(params));
+                    }.bind(this));
+                } catch (_) {
+                    this.showError();
+                }
+            }.bind(this)
+        });
     };
 
     // document.write the form for new comments here
@@ -83,27 +105,6 @@
         return element;
     };
 
-    CommentHelper.prototype.getComments = function () {
-        this.httpRequest({
-            url: this.url + '/comments/' + this.slug,
-            callback: function (errorText, responseText) {
-                if (errorText) {
-                    return this.showError();
-                }
-
-                try {
-                    var response = JSON.parse(request.responseText);
-
-                    response.comments.forEach(function (params) {
-                        this.commentList.appendChild(this.commentTemplate(params));
-                    }.bind(this));
-                } catch (_) {
-                    this.showError();
-                }
-            }.bind(this)
-        });
-    };
-
     CommentHelper.prototype.postComment = function (event) {
         event.preventDefault();
 
@@ -145,7 +146,8 @@
     CommentHelper.prototype.getCount = function () {
         // Turn HTMLCollection -> Array
         var commentAnchors = Array.prototype.slice.call(document.getElementsByClassName('comments'), 0).filter(function (anchor) {
-            // If count is zero, add slug to array that will be sent to the server
+            // If count is zero (meaning no comments hard-coded in source YAML),
+            // add slug to array that will be sent to the server
             if (anchor.dataset["commentCount"] && parseInt(anchor.dataset["commentCount"], 10) === 0) {
                 return anchor;
             }
@@ -158,27 +160,25 @@
         });
 
         var params = {
-            slugs: commentAnchors.map(function (anchor) {
-                return anchor.slug;
-            })
+            slugs: commentAnchors.map(function (anchor) { return anchor.slug; })
         };
 
         this.httpRequest({
             params: params,
             method: 'GET',
-            url: this.url + '/comments/count',
+            url: this.url + '/comments/_count',
             callback: function (errorText, responseText) {
-                var counts;
+                var count;
 
                 try {
-                    counts = JSON.parse(responseText);
+                    count = JSON.parse(responseText)['count'];
                 } catch (_) {
-                    counts = {};
+                    count = {};
                 }
 
                 commentAnchors.forEach(function (anchor) {
-                    if (counts[anchor.slug] && counts[anchor.slug] > 0) {
-                        anchor.text = counts[anchor.slug] + ' comments';
+                    if (count[anchor.slug] && count[anchor.slug] > 0) {
+                        anchor.text = count[anchor.slug] + ' comment' + (count[anchor.slug] === 1 ? '' : 's');
                     }
                 });
             }
@@ -186,35 +186,39 @@
     };
 
     CommentHelper.prototype.httpRequest = function (options) {
-        // options = {params, method, url, callback}
         options = options || {};
         options.params = options.params || {};
-        options.method = options.method || 'https://www.google.com';
         options.method = options.method || 'GET';
+        options.url = options.url || 'https://www.google.com';
         options.callback = options.callback || function () {};
 
-        var serializedParams = Object.keys(params).map(function (key) {
-            return key + '=' + params[key];
+        var serializedParams = Object.keys(options.params).map(function (key) {
+            return key + '=' + options.params[key];
         }).join('&');
 
         var request = new XMLHttpRequest();
         request.onreadystatechange = function (event) {
-            if (request.readyState !== XMLHttpRequest.DONE) {
+            if (this.readyState !== XMLHttpRequest.DONE) {
                 return;
             }
 
-            if (Math.floor(request.status / 100) === 2) {
-                options.callback(null, request.responseText);
+            if (Math.floor(this.status / 100) === 2) {
+                options.callback(null, this.responseText);
             } else {
-                options.callback(request.responseText);
+                options.callback(this.responseText);
             }
         };
-        request.open(options.method, options.url);
-        request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-        request.send(serializedParams);
+
+        if (options.method === 'GET') {
+            request.open(options.method, options.url + '?' + serializedParams);
+            request.send();
+        } else {
+            request.open(options.method, options.url);
+            request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            request.send(serializedParams);
+        }
     };
 
-    // Kick it off!
-    var comments = new CommentHelper();
-}());
+    root.CommentHelper = CommentHelper;
+}(window));
 
