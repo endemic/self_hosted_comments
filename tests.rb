@@ -40,4 +40,16 @@ class AppTest < Minitest::Test
     json_response = JSON.parse(last_response.body)
     assert_equal json_response["comments"], []
   end
+
+  def test_get_count
+    slug = SecureRandom.hex
+
+    post "/comments", { slug: slug, author: "nathan", body: "this is a comment" }
+
+    get "/comments/_count", { slugs: [slug, "garbage"].join(",") }
+    json_response = JSON.parse(last_response.body)
+
+    assert_equal json_response["count"][slug], 1
+    assert_nil json_response["count"]["garbage"]
+  end
 end
