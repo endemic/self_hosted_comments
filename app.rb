@@ -5,6 +5,7 @@ require "sinatra"
 require "faraday"
 require "json"
 
+BLOG_DOMAIN = "https://nathandemick.com"
 DATABASE = if ENV["RACK_ENV"] == "test"
              "test.sqlite"
            else
@@ -24,7 +25,8 @@ CREATE TABLE IF NOT EXISTS "comments" (
    "author" text NOT NULL,
    "url" text,
    "body" text NOT NULL,
-   "timestamp" integer NOT NULL
+   "timestamp" integer NOT NULL,
+    PRIMARY KEY("slug")
 );
 
 -- ----------------------------
@@ -38,7 +40,7 @@ db.execute(schema_init_query)
 # -- Routes --
 
 post "/comments" do
-  response["Access-Control-Allow-Origin"] = "https://nathandemick.com"
+  response["Access-Control-Allow-Origin"] = BLOG_DOMAIN
 
   captcha_results = if ENV["RACK_ENV"] == "production"
                       verify_captcha(secret: ENV["RECAPTCHA_SECRET"],
@@ -70,17 +72,34 @@ post "/comments" do
   end
 end
 
+get "/comments/_count" do
+  response["Access-Control-Allow-Origin"] = BLOG_DOMAIN
+
+  begin
+    slugs = params["slugs"] || []
+    placeholders = (["?"] * slugs.length).join(", ")
+    rows = db.execute("SELECT slug, COUNT(slug) AS count FROM comments WHERE slug IN (#{placeholders}) GROUP BY slug", slugs)
+
+    results = {}
+    rows.each_with_object(results) {|row, obj| obj[row["slug"]] = row["count"]}
+    return { count: results }.to_json
+  rescue SQLite3::SQLException
+    status 500
+    return {}.to_json
+  end
+end
+
 get "/comments/:slug" do
-  response["Access-Control-Allow-Origin"] = "https://nathandemick.com"
+  response["Access-Control-Allow-Origin"] = BLOG_DOMAIN
 
   rows = db.execute2("SELECT * FROM comments WHERE slug = ?", params["slug"])
   return { comments: [] }.to_json unless rows.count > 1 # execute2 returns first result as column names
 
-  { comments: rows[1..-1] }.to_json
+  return { comments: rows[1..-1] }.to_json
 end
 
 not_found do
-  { status: 404, message: "Content not found" }.to_json
+  return { status: 404, message: "Content not found" }.to_json
 end
 
 def verify_captcha(params)

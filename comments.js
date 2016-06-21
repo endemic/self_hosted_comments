@@ -1,14 +1,16 @@
 (function () {
     // polyfill, because I'm lazy
-    Array.prototype.compact = function () {
-        var emptyValues = [null, undefined, ''];
-        for (var i = 0; i < this.length; i += 1) {
-            if (emptyValues.indexOf(this[i]) > -1) {
-                this.splice(i, 1);
+    if (!Array.prototype.compact) {
+        Array.prototype.compact = function () {
+            var emptyValues = [null, undefined, ''];
+            for (var i = 0; i < this.length; i += 1) {
+                if (emptyValues.indexOf(this[i]) > -1) {
+                    this.splice(i, 1);
+                }
             }
-        }
-        return this;
-    };
+            return this;
+        };
+    }
 
     /**
      * @constructor
@@ -16,6 +18,7 @@
     var CommentHelper = function () {
         this.slug = window.location.pathname.split('/').compact().pop();
         this.url = 'https://nathandemick.com/api'; // Replace this w/ ur server
+        this.captchaSiteKey = '6LeqwR8TAAAAAKl3dbC6494ll8Eki6ss5zBgWxxw'; // Replace this w/ ur key
 
         this.writeForm();
 
@@ -41,7 +44,7 @@
             '<input id="comment_url" type="url" name="url"></p>',
             '<p><label for="comment_body">Comment</label>',
             '<textarea id="comment_body" name="body" required="required"></textarea></p>',
-            '<div class="g-recaptcha" data-sitekey="6LeqwR8TAAAAAKl3dbC6494ll8Eki6ss5zBgWxxw"></div>',
+            '<div class="g-recaptcha" data-sitekey="' + this.captchaSiteKey + '"></div>',
             '<button>Send!</button>',
             '</form>',
             '</div> <!-- /#comments -->'
@@ -81,29 +84,24 @@
     };
 
     CommentHelper.prototype.getComments = function () {
-        var request = new XMLHttpRequest();
-        request.onreadystatechange = function (event) {
-            if (request.readyState !== 4) {
-                return;
-            }
+        this.httpRequest({
+            url: this.url + '/comments/' + this.slug,
+            callback: function (errorText, responseText) {
+                if (errorText) {
+                    return this.showError();
+                }
 
-            if (Math.floor(request.status / 100) === 2) {
                 try {
                     var response = JSON.parse(request.responseText);
 
                     response.comments.forEach(function (params) {
                         this.commentList.appendChild(this.commentTemplate(params));
                     }.bind(this));
-                } catch (e) {
-                    console.warn('Error parsing JSON response', e);
+                } catch (_) {
                     this.showError();
                 }
-            } else {
-                    this.showError();
-            }
-        }.bind(this);
-        request.open('GET', this.url + '/comments/' + this.slug);
-        request.send();
+            }.bind(this)
+        });
     };
 
     CommentHelper.prototype.postComment = function (event) {
@@ -120,27 +118,20 @@
             'g-recaptcha-response': document.getElementById('g-recaptcha-response').value
         };
 
-        var serializedParams = Object.keys(params).map(function (key) {
-            return key + '=' + params[key];
-        }).join('&');
+        this.httpRequest({
+            params: params,
+            method: 'POST',
+            url: this.url + '/comments',
+            callback: function (errorText, responseText) {
+                if (errorText) {
+                    return this.showError();
+                }
 
-        var request = new XMLHttpRequest();
-        request.onreadystatechange = function (event) {
-            if (request.readyState !== 4) {
-                return;
-            }
-
-            if (Math.floor(request.status / 100) === 2) {
                 this.commentList.appendChild(this.commentTemplate(params));
                 this.commentForm.reset();
                 grecaptcha.reset();
-            } else {
-                this.showError();
-            }
-        }.bind(this);
-        request.open('POST', this.url + '/comments');
-        request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-        request.send(serializedParams);
+            }.bind(this)
+        });
     };
 
     CommentHelper.prototype.showError = function () {
@@ -151,6 +142,79 @@
         this.commentErrorMessage.style.display = 'none';
     };
 
+    CommentHelper.prototype.getCount = function () {
+        // Turn HTMLCollection -> Array
+        var commentAnchors = Array.prototype.slice.call(document.getElementsByClassName('comments'), 0).filter(function (anchor) {
+            // If count is zero, add slug to array that will be sent to the server
+            if (anchor.dataset["commentCount"] && parseInt(anchor.dataset["commentCount"], 10) === 0) {
+                return anchor;
+            }
+        });
+
+        // Generate slugs
+        commentAnchors.forEach(function (anchor, index, array) {
+            var slug = anchor.href.split('/').compact().pop();
+            array[index].slug = slug.slice(0, slug.indexOf('#'));    // Remove trailing `#comments`
+        });
+
+        var params = {
+            slugs: commentAnchors.map(function (anchor) {
+                return anchor.slug;
+            })
+        };
+
+        this.httpRequest({
+            params: params,
+            method: 'GET',
+            url: this.url + '/comments/count',
+            callback: function (errorText, responseText) {
+                var counts;
+
+                try {
+                    counts = JSON.parse(responseText);
+                } catch (_) {
+                    counts = {};
+                }
+
+                commentAnchors.forEach(function (anchor) {
+                    if (counts[anchor.slug] && counts[anchor.slug] > 0) {
+                        anchor.text = counts[anchor.slug] + ' comments';
+                    }
+                });
+            }
+        });
+    };
+
+    CommentHelper.prototype.httpRequest = function (options) {
+        // options = {params, method, url, callback}
+        options = options || {};
+        options.params = options.params || {};
+        options.method = options.method || 'https://www.google.com';
+        options.method = options.method || 'GET';
+        options.callback = options.callback || function () {};
+
+        var serializedParams = Object.keys(params).map(function (key) {
+            return key + '=' + params[key];
+        }).join('&');
+
+        var request = new XMLHttpRequest();
+        request.onreadystatechange = function (event) {
+            if (request.readyState !== XMLHttpRequest.DONE) {
+                return;
+            }
+
+            if (Math.floor(request.status / 100) === 2) {
+                options.callback(null, request.responseText);
+            } else {
+                options.callback(request.responseText);
+            }
+        };
+        request.open(options.method, options.url);
+        request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+        request.send(serializedParams);
+    };
+
     // Kick it off!
     var comments = new CommentHelper();
 }());
+

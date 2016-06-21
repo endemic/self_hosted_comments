@@ -2,7 +2,7 @@ source "https://rubygems.org"
 
 gem "sinatra"
 gem "faraday"
-gem "sqlite3"
+gem "sqlite3", "~> 1.3.11"
 
 gem "thin", group: :production
 
