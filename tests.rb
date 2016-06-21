@@ -46,7 +46,7 @@ class AppTest < Minitest::Test
 
     post "/comments", { slug: slug, author: "nathan", body: "this is a comment" }
 
-    get "/comments/_count", { slugs: [slug, "garbage"] }
+    get "/comments/_count", { slugs: [slug, "garbage"].join(",") }
     json_response = JSON.parse(last_response.body)
 
     assert_equal json_response["count"][slug], 1
