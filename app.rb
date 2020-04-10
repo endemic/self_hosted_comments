@@ -25,8 +25,7 @@ CREATE TABLE IF NOT EXISTS "comments" (
    "author" text NOT NULL,
    "url" text,
    "body" text NOT NULL,
-   "timestamp" integer NOT NULL,
-    PRIMARY KEY("slug")
+   "timestamp" integer NOT NULL
 );
 
 -- ----------------------------

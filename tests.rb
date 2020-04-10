@@ -1,6 +1,9 @@
 require "./app"
+
 require "minitest/autorun"
 require "rack/test"
+
+require "sqlite3"
 require "json"
 require "securerandom"
 
@@ -11,45 +14,70 @@ class AppTest < Minitest::Test
     Sinatra::Application
   end
 
+  def teardown
+    SQLite3::Database.new("test.sqlite")
+                     .execute("DELETE FROM comments")
+  end
+
   def test_post_and_get
-    slug = SecureRandom.hex
+    slug = "test_post_and_get"
 
     post "/comments", { slug: slug, author: "nathan", body: "this is a comment" }
     assert_equal 200, last_response.status
 
     get "/comments/#{slug}"
     json_response = JSON.parse(last_response.body)
-    assert_equal json_response["comments"].first["slug"], slug
+
+    expected = slug
+    actual = json_response["comments"].first["slug"]
+
+    assert_equal(expected, actual)
   end
 
   def test_get_multiple_results
-    slug = SecureRandom.hex
+    slug = "test_get_multiple_results"
 
-    post "/comments", { slug: slug, author: "nathan", body: "this is a comment" }
-    post "/comments", { slug: slug, author: "nathan", body: "this is a comment" }
-    post "/comments", { slug: slug, author: "nathan", body: "this is a comment" }
+    post "/comments", { slug: slug, author: "nathan", body: "comment #1" }
+    assert_equal 200, last_response.status
+
+    post "/comments", { slug: slug, author: "nathan", body: "comment #2" }
+    assert_equal 200, last_response.status
+
+    post "/comments", { slug: slug, author: "nathan", body: "comment #3" }
+    assert_equal 200, last_response.status
 
     get "/comments/#{slug}"
     json_response = JSON.parse(last_response.body)
-    assert_equal json_response["comments"].count, 3
+
+    expected = 3
+    actual = json_response["comments"].count
+
+    assert_equal(expected, actual)
   end
 
   def test_get_not_found
     get "/comments/garbage"
     assert_equal 200, last_response.status
     json_response = JSON.parse(last_response.body)
-    assert_equal json_response["comments"], []
+
+    expected = []
+    actual = json_response["comments"]
+
+    assert_equal(expected, actual)
   end
 
   def test_get_count
-    slug = SecureRandom.hex
+    slug = "test_get_count"
 
     post "/comments", { slug: slug, author: "nathan", body: "this is a comment" }
 
     get "/comments/_count", { slugs: [slug, "garbage"].join(",") }
     json_response = JSON.parse(last_response.body)
 
-    assert_equal json_response["count"][slug], 1
-    assert_nil json_response["count"]["garbage"]
+    expected = 1
+    actual = json_response["count"][slug]
+
+    assert_equal(expected, actual)
+    assert_nil(json_response["count"]["garbage"])
   end
 end
