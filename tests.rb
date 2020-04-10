@@ -23,7 +23,7 @@ class AppTest < Minitest::Test
     slug = "test_post_and_get"
 
     post "/comments", { slug: slug, author: "nathan", body: "this is a comment" }
-    assert_equal 200, last_response.status
+    assert_equal 201, last_response.status
 
     get "/comments/#{slug}"
     json_response = JSON.parse(last_response.body)
@@ -38,13 +38,13 @@ class AppTest < Minitest::Test
     slug = "test_get_multiple_results"
 
     post "/comments", { slug: slug, author: "nathan", body: "comment #1" }
-    assert_equal 200, last_response.status
+    assert_equal 201, last_response.status
 
     post "/comments", { slug: slug, author: "nathan", body: "comment #2" }
-    assert_equal 200, last_response.status
+    assert_equal 201, last_response.status
 
     post "/comments", { slug: slug, author: "nathan", body: "comment #3" }
-    assert_equal 200, last_response.status
+    assert_equal 201, last_response.status
 
     get "/comments/#{slug}"
     json_response = JSON.parse(last_response.body)

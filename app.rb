@@ -64,6 +64,7 @@ post "/comments" do
 
   begin
     db.execute("INSERT INTO comments VALUES (?, ?, ?, ?, ?)", values)
+    status 201
     return { success: true }.to_json
   rescue SQLite3::SQLException
     status 500
