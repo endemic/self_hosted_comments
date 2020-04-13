@@ -112,7 +112,7 @@
             url: this.commentUrl.value,
             body: this.commentBody.value,
             timestamp: Date.now() / 1000,
-            'h-captcha-response': document.getElementById('h-captcha-response').value
+            'h-captcha-response': hcaptcha.getResponse()
         };
 
         this.httpRequest({
