@@ -18,7 +18,7 @@
     var CommentHelper = function () {
         this.slug = window.location.pathname.split('/').compact().pop();
         this.url = 'https://nathandemick.com/api'; // Replace this w/ ur server
-        this.captchaSiteKey = '6LeqwR8TAAAAAKl3dbC6494ll8Eki6ss5zBgWxxw'; // Replace this w/ ur key
+        this.captchaSiteKey = 'f7374644-f83b-4e85-b4c2-c7bf99a3769c'; // Replace this w/ ur key
     };
 
     /**
@@ -26,11 +26,6 @@
      */
     CommentHelper.prototype.getComments = function () {
         this.writeForm();
-
-        // Load reCAPTCHA
-        var script = document.createElement('script');
-        script.src = 'https://www.google.com/recaptcha/api.js';
-        document.head.appendChild(script);
 
         this.httpRequest({
             url: this.url + '/comments/' + this.slug,
@@ -66,7 +61,8 @@
             '<input id="comment_url" type="url" name="url"></p>',
             '<p><label for="comment_body">Comment</label>',
             '<textarea id="comment_body" name="body" required="required"></textarea></p>',
-            '<div class="g-recaptcha" data-sitekey="' + this.captchaSiteKey + '"></div>',
+            '<div class="h-captcha" data-sitekey="' + this.captchaSiteKey + '"></div>',
+            '<script src="https://hcaptcha.com/1/api.js" async defer></script>',
             '<button>Send!</button>',
             '</form>',
             '</div> <!-- /#comments -->'
@@ -116,7 +112,7 @@
             url: this.commentUrl.value,
             body: this.commentBody.value,
             timestamp: Date.now() / 1000,
-            'g-recaptcha-response': document.getElementById('g-recaptcha-response').value
+            'h-captcha-response': document.getElementById('h-captcha-response').value
         };
 
         this.httpRequest({
@@ -130,7 +126,7 @@
 
                 this.commentList.appendChild(this.commentTemplate(params));
                 this.commentForm.reset();
-                grecaptcha.reset();
+                hcaptcha.reset();
             }.bind(this)
         });
     };
@@ -189,7 +185,7 @@
         options = options || {};
         options.params = options.params || {};
         options.method = options.method || 'GET';
-        options.url = options.url || 'https://www.google.com';
+        options.url = options.url;
         options.callback = options.callback || function () {};
 
         var serializedParams = Object.keys(options.params).map(function (key) {

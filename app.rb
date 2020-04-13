@@ -42,9 +42,8 @@ post "/comments" do
   response["Access-Control-Allow-Origin"] = ALLOWED_DOMAIN
 
   captcha_results = if ENV["RACK_ENV"] == "production"
-                      verify_captcha(secret: ENV["RECAPTCHA_SECRET"],
-                                     response: params["g-recaptcha-response"],
-                                     remoteip: request.ip)
+                      verify_captcha(secret: ENV["HCAPTCHA_SECRET"],
+                                     response: params["h-captcha-response"])
                     else
                       { "success" => true }
                     end
@@ -105,16 +104,15 @@ end
 
 def verify_captcha(params)
   # Check validity of CAPTCHA
-  conn = Faraday.new(url: "https://www.google.com") do |faraday|
+  conn = Faraday.new(url: "https://hcaptcha.com") do |faraday|
     faraday.request(:url_encoded)            # form-encode POST params
     faraday.response(:logger)                # log requests to STDOUT
     faraday.adapter(Faraday.default_adapter) # make requests with Net::HTTP
   end
 
-  response = conn.post "/recaptcha/api/siteverify", {
+  response = conn.post "/siteverify", {
     secret: params[:secret],
-    response: params[:response],
-    remoteip: params[:remoteip]
+    response: params[:response]
   }
 
   begin
